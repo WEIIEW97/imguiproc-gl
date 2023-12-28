@@ -5,6 +5,10 @@
 
 # ImGuiFileDialog
 
+This is a forked version of original repository https://github.com/aiekick/ImGuiFileDialog.
+
+Thanks to the contributors of original project.
+
 ## Purpose
 
 ImGuiFileDialog is a file selection dialog built for (and using only) [Dear ImGui](https://github.com/ocornut/imgui).
