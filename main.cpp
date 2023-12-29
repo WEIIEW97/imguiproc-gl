@@ -230,6 +230,16 @@ protected:
     }
 };
 
+static void component_img_one_chn_to_bin(std::string& input_directory, std::string& output_directory);
+static void component_img_resize(std::string& input_directory, std::string& output_directory);
+static void component_img_flip(std::string& input_directory, std::string& output_directory);
+static void component_img_disp2depth(std::string& input_directory, std::string& output_directory);
+static void component_img_colormap(std::string& input_directory, std::string& output_directory);
+static void component_img_rename(std::string& input_directory, std::string& output_directory);
+static void component_img_bin2rgb(std::string& input_directory, std::string& output_directory);
+static void component_img_rgb2bin(std::string& input_directory, std::string& output_directory);
+static void component_file_dialog_showroom(std::string& filePathName, std::string& filePath, std::string& input_directory, std::string& output_directory, std::vector<std::pair<std::string, std::string>> selection);
+
 int main(int, char**) {
 #ifdef _MSC_VER
     // active memory leak detector
@@ -246,7 +256,7 @@ int main(int, char**) {
     if (!glfwInit()) return 1;
 
         // Decide GL+GLSL versions
-#if APPLE
+#if __APPLE__
     // GL 3.2 + GLSL 150
     const char* glsl_version = "#version 150";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -316,7 +326,7 @@ int main(int, char**) {
     ImGui::GetIO().Fonts->AddFontFromMemoryCompressedBase85TTF(FONT_ICON_BUFFER_NAME_IGFD, 15.0f, &icons_config, icons_ranges);
 
     // Our state
-    bool show_demo_window = true;
+    bool show_demo_window = false;
     ImVec4 clear_color    = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // singleton acces
@@ -339,7 +349,7 @@ int main(int, char**) {
     ImGuiFileDialog::Instance()->SetFileStyle([](const IGFD::FileInfos& vFileInfos, IGFD::FileStyle& vOutStyle) -> bool {
         if (!vFileInfos.fileNameExt.empty() && vFileInfos.fileNameExt[0] == '.') {
             vOutStyle.color = ImVec4(0.0f, 0.9f, 0.9f, 1.0f);
-            vOutStyle.icon = ICON_IGFD_REMOVE;
+            vOutStyle.icon  = ICON_IGFD_REMOVE;
             return true;
         }
         return false;
@@ -382,7 +392,7 @@ int main(int, char**) {
     CustomDrawReadOnlyCheckBoxFileDialog::Instance()->SetFileStyle([](const IGFD::FileInfos& vFile, IGFD::FileStyle& vOutStyle) -> bool {
         if (!vFile.fileNameExt.empty() && vFile.fileNameExt[0] == '.') {
             vOutStyle.color = ImVec4(0.0f, 0.9f, 0.9f, 1.0f);
-            vOutStyle.icon = ICON_IGFD_REMOVE;
+            vOutStyle.icon  = ICON_IGFD_REMOVE;
             return true;
         }
         return false;
@@ -417,7 +427,7 @@ int main(int, char**) {
     static std::string input_directory, output_directory;
     static std::vector<std::pair<std::string, std::string>> selection = {};
 
-    static bool UseWindowContraints  = true;
+    static bool UseWindowContraints   = true;
     static ImGuiFileDialogFlags flags = ImGuiFileDialogFlags_Default;
     static IGFD_ResultMode resultMode = IGFD_ResultMode_AddIfNoFileExt;
 
@@ -457,14 +467,12 @@ int main(int, char**) {
                     flashingAttenuationInSeconds = 1.0f;
                     ImGuiFileDialog::Instance()->SetFlashingAttenuationInSeconds(flashingAttenuationInSeconds);
                     fileDialog2.SetFlashingAttenuationInSeconds(flashingAttenuationInSeconds);
-
                 }
                 ImGui::SameLine();
                 ImGui::PushItemWidth(200);
                 if (ImGui::SliderFloat("Flash lifetime (s)", &flashingAttenuationInSeconds, 0.01f, 5.0f)) {
                     ImGuiFileDialog::Instance()->SetFlashingAttenuationInSeconds(flashingAttenuationInSeconds);
                     fileDialog2.SetFlashingAttenuationInSeconds(flashingAttenuationInSeconds);
-
                 }
                 ImGui::PopItemWidth();
 #endif
@@ -503,10 +511,10 @@ int main(int, char**) {
 
                     ImGui::SameLine();
                     RadioButtonLabeled_BitWize<ImGuiFileDialogFlags>("Disable quick path selection", "Disable the quick path selection", &flags, ImGuiFileDialogFlags_DisableQuickPathSelection);
-                    
+
                     ImGui::Separator();
                     ImGui::Text("Result Modes : for GetFilePathName and GetSelection");
-                    
+
                     if (RadioButtonLabeled("Add If No File Ext", nullptr, resultMode == IGFD_ResultMode_::IGFD_ResultMode_AddIfNoFileExt, false)) {
                         resultMode = IGFD_ResultMode_::IGFD_ResultMode_AddIfNoFileExt;
                     }
@@ -534,95 +542,18 @@ int main(int, char**) {
                 }
             }
 
+            component_file_dialog_showroom(filePathName, filePath, input_directory, output_directory, selection);
+
             /// for selecting functionality
-            if (ImGui::CollapsingHeader("img2yuv :")) {
-                const char* items[] = {"L", "R"};
-                static int item_current = 0; // This will be 0 for "L", 1 for "R"
-                ImGui::Combo("Choose the position of image", &item_current, items, IM_ARRAYSIZE(items));
-
-                static char left_marker[64] = "left";
-                static char right_marker[64] = "right";
-                static ImGuiInputFlags flags_img2yuv = ImGuiInputTextFlags_AlwaysOverwrite;
-
-                static bool is_button_clicked = false;
-                static bool is_animate = false;
-
-                if (ImGui::TreeNode("Left Marker : ")) {
-                    if (item_current == 0) { // Only show this if "L" is selected
-                        ImGui::InputText("##sourceLeft", left_marker, IM_ARRAYSIZE(left_marker), flags_img2yuv);
-                    }
-                    ImGui::TreePop();
-                }
-
-                if (ImGui::TreeNode("Right Marker : ")) {
-                    if (item_current == 1) { // Only show this if "R" is selected
-                        ImGui::InputText("##sourceRight", right_marker, IM_ARRAYSIZE(right_marker), flags_img2yuv);
-                    }
-                    ImGui::TreePop();
-                }
-
-                if (ImGui::Button("Run")) {
-                    // Use the text from the selected input box
-                    is_button_clicked = true;
-                    std::cout << "Left Marker: " << left_marker << std::endl;
-                    std::cout << "Right Marker: " << right_marker << std::endl;
-                    std::cout << "image position: " << items[item_current] << std::endl;
-                    std::cout << "input directory: " << input_directory << std::endl;
-                    std::cout << "output directory: " << output_directory << std::endl;
-                    nvpimgproc::handle::Handler handler(input_directory, output_directory);
-                    handler.process_img2yuv((std::string&)items[item_current], reinterpret_cast<std::string&>(left_marker), reinterpret_cast<std::string&>(right_marker));
-                }
-
-//                if(is_button_clicked) {
-//                    is_animate = true;
-//                    static double refresh_time = 0.0;
-//                    if (!is_animate || refresh_time == 0.0) {
-//                        refresh_time = ImGui::GetTime();
-//                    }
-//                }
-            }
-
-
-            if (ImGui::CollapsingHeader("ImGuiFileDialog Return's :")) {
-                ImGui::Text("GetFilePathName() : %s", filePathName.c_str());
-                ImGui::Text("GetFilePath() : %s", filePath.c_str());
-                ImGui::Text("input directory() : %s", input_directory.c_str());
-                ImGui::Text("output directory() : %s", output_directory.c_str());
-                ImGui::Text("GetSelection() : ");
-                ImGui::Indent();
-                {
-                    static int selected = false;
-                    if (ImGui::BeginTable("##GetSelection", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
-                        ImGui::TableSetupScrollFreeze(0, 1);  // Make top row always visible
-                        ImGui::TableSetupColumn("File Name", ImGuiTableColumnFlags_WidthStretch, -1, 0);
-                        ImGui::TableSetupColumn("File Path name", ImGuiTableColumnFlags_WidthFixed, -1, 1);
-                        ImGui::TableHeadersRow();
-
-                        ImGuiListClipper clipper;
-                        clipper.Begin((int)selection.size(), ImGui::GetTextLineHeightWithSpacing());
-                        while (clipper.Step()) {
-                            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                                const auto& sel = selection[i];
-                                ImGui::TableNextRow();
-                                if (ImGui::TableSetColumnIndex(0))  // first column
-                                {
-                                    ImGuiSelectableFlags selectableFlags = ImGuiSelectableFlags_AllowDoubleClick;
-                                    selectableFlags |= ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap;
-                                    if (ImGui::Selectable(sel.first.c_str(), i == selected, selectableFlags)) selected = i;
-                                }
-                                if (ImGui::TableSetColumnIndex(1))  // second column
-                                {
-                                    ImGui::Text("%s", sel.second.c_str());
-                                }
-                            }
-                        }
-                        clipper.End();
-
-                        ImGui::EndTable();
-                    }
-                }
-                ImGui::Unindent();
-            }
+            component_img_one_chn_to_bin(input_directory, output_directory);
+            component_img_resize(input_directory, output_directory);
+            component_img_flip(input_directory, output_directory);
+            component_img_disp2depth(input_directory, output_directory);
+            component_img_colormap(input_directory, output_directory);
+            component_img_rename(input_directory, output_directory);
+            component_img_bin2rgb(input_directory, output_directory);
+            component_img_rgb2bin(input_directory, output_directory);
+            /// end for selecting functionality
 
             /////////////////////////////////////////////////////////////////
             //// DISPLAY ////////////////////////////////////////////////////
@@ -643,9 +574,9 @@ int main(int, char**) {
 
             if (fileDialog2.Display("ChooseDirDlgKey", ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
                 if (fileDialog2.IsOk()) {
-                    filePathName = fileDialog2.GetFilePathName(resultMode);
-                    filePath     = fileDialog2.GetCurrentPath();
-                    filter       = fileDialog2.GetCurrentFilter();
+                    filePathName    = fileDialog2.GetFilePathName(resultMode);
+                    filePath        = fileDialog2.GetCurrentPath();
+                    filter          = fileDialog2.GetCurrentFilter();
                     input_directory = filePath;
                     // here convert from string because a string was passed as a userDatas, but it can be what you want
                     if (fileDialog2.GetUserDatas()) userDatas = std::string((const char*)fileDialog2.GetUserDatas());
@@ -661,9 +592,9 @@ int main(int, char**) {
 
             if (fileDialog3.Display("ChooseDirDlgKey", ImGuiWindowFlags_NoCollapse, minSize, maxSize)) {
                 if (fileDialog3.IsOk()) {
-                    filePathName = fileDialog3.GetFilePathName(resultMode);
-                    filePath     = fileDialog3.GetCurrentPath();
-                    filter       = fileDialog3.GetCurrentFilter();
+                    filePathName     = fileDialog3.GetFilePathName(resultMode);
+                    filePath         = fileDialog3.GetCurrentPath();
+                    filter           = fileDialog3.GetCurrentFilter();
                     output_directory = filePath;
                     // here convert from string because a string was passed as a userDatas, but it can be what you want
                     if (fileDialog3.GetUserDatas()) userDatas = std::string((const char*)fileDialog3.GetUserDatas());
@@ -731,4 +662,233 @@ int main(int, char**) {
     glfwTerminate();
 
     return 0;
+}
+
+static void component_img_one_chn_to_bin(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("save one channel of image to binary")) {
+        const char* items[]     = {"L", "R"};
+        static int item_current = 0;  // This will be 0 for "L", 1 for "R"
+        ImGui::Combo("Choose the position of image", &item_current, items, IM_ARRAYSIZE(items));
+
+        static char left_marker[64]          = "left";
+        static char right_marker[64]         = "right";
+        static ImGuiInputFlags flags_img2yuv = ImGuiInputTextFlags_AlwaysOverwrite;
+
+        static bool is_button_clicked = false;
+        static bool is_animate        = false;
+
+        if (ImGui::TreeNode("Left Marker : ")) {
+            if (item_current == 0) {  // Only show this if "L" is selected
+                ImGui::InputText("##sourceLeft", left_marker, IM_ARRAYSIZE(left_marker), flags_img2yuv);
+            }
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Right Marker : ")) {
+            if (item_current == 1) {  // Only show this if "R" is selected
+                ImGui::InputText("##sourceRight", right_marker, IM_ARRAYSIZE(right_marker), flags_img2yuv);
+            }
+            ImGui::TreePop();
+        }
+
+        if (ImGui::Button("Run")) {
+            // Use the text from the selected input box
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_img2yuv((std::string&)items[item_current], reinterpret_cast<std::string&>(left_marker), reinterpret_cast<std::string&>(right_marker));
+        }
+        //                if(is_button_clicked) {
+        //                    is_animate = true;
+        //                    static double refresh_time = 0.0;
+        //                    if (!is_animate || refresh_time == 0.0) {
+        //                        refresh_time = ImGui::GetTime();
+        //                    }
+        //                }
+    }
+}
+
+static void component_img_resize(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("resize image")) {
+        static bool is_button_clicked        = false;
+        static float drag_f                  = 0.5f;
+        static ImGuiSliderFlags resize_flags = ImGuiSliderFlags_None;
+        ImGui::DragFloat("scaling factor ( 0 -> 5)", &drag_f, 0.005f, 0.0f, 5.0f, "%.3f", resize_flags);
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_img_resize(drag_f);
+        }
+    }
+}
+
+static void component_img_flip(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("flip image")) {
+        static bool is_button_clicked = false;
+        const char* items[]           = {"0", "1", "-1"};
+        static int item_current       = 0;
+        ImGui::Combo("Choose your flipping mode", &item_current, items, IM_ARRAYSIZE(items));
+        int chosen_num = atoi(items[item_current]);
+        nvpimgproc::FLIP status;
+        if (chosen_num == 0) {
+            status = nvpimgproc::FLIP::X_AXIS;
+        } else if (chosen_num == 1) {
+            status = nvpimgproc::FLIP::Y_AXIS;
+        } else {
+            status = nvpimgproc::FLIP::XY_AXIS;
+        }
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_img_flip(status);
+        }
+    }
+}
+
+static void component_img_disp2depth(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("convert disparity to depth")) {
+        static bool is_button_clicked = false;
+        static int height             = 400;
+        static int width              = 640;
+        static float focal            = 54.564941;
+        static float baseline         = 330.993011;
+
+        ImGui::InputInt("Image Height", &height);
+        ImGui::InputInt("Image Width", &width);
+        ImGui::InputFloat("Camera focal length", &focal, 10.0f, 100.0f, "%.6f");
+        ImGui::InputFloat("Camera baseline length", &baseline, 100.0f, 1000.0f, "%.6f");
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_disp2depth(width, height, focal, baseline);
+        }
+    }
+}
+
+static void component_img_colormap(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("apply colormap to an image")) {
+        static bool is_button_clicked = false;
+        static int height             = 400;
+        static int width              = 640;
+        static bool is_depth;
+        const char* items[]     = {"depth", "disparity"};
+        static int item_current = 0;
+        static int begin_i = 0, end_i = 0;
+        ImGui::Combo("Choose the source data mode", &item_current, items, IM_ARRAYSIZE(items));
+        std::string mode = items[item_current];
+        ImGui::InputInt("Image Height", &height);
+        ImGui::InputInt("Image Width", &width);
+        ImGui::DragIntRange2("colormap value limit range", &begin_i, &end_i, 1, 0, 0, "Min: %d units", "Max: %d units");
+        if (mode == "depth") {
+            is_depth = true;
+        } else {
+            is_depth = false;
+        }
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_colormap(width, height, is_depth, begin_i, end_i);
+        }
+    }
+}
+
+static void component_img_rename(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("rename left/right camera image to specific format")) {
+        static bool is_button_clicked = false;
+        const char* items[]           = {"L", "R"};
+        static int item_current       = 0;
+        ImGui::Combo("Choose left/right of camera", &item_current, items, IM_ARRAYSIZE(items));
+        std::string mode = items[item_current];
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_rename(mode);
+        }
+    }
+}
+
+static void component_img_bin2rgb(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("convert binary data to rgb data")) {
+        static bool is_button_clicked = false;
+        static int height             = 400;
+        static int width              = 640;
+
+        ImGui::InputInt("Image Height", &height);
+        ImGui::InputInt("Image Width", &width);
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_bin2rgb(width, height);
+        }
+    }
+}
+
+static void component_img_rgb2bin(std::string& input_directory, std::string& output_directory) {
+    if (ImGui::CollapsingHeader("convert rgb data(or raw) to binary data")) {
+        static bool is_button_clicked = false;
+        static bool is_rgb;
+        const char* items[]     = {"rgb", "raw"};
+        static int item_current = 0;
+        ImGui::Combo("data format", &item_current, items, IM_ARRAYSIZE(items));
+        std::string mode = items[item_current];
+        if (mode == "rgb") {
+            is_rgb = true;
+        } else {
+            is_rgb = false;
+        }
+
+        if (ImGui::Button("Run")) {
+            is_button_clicked = true;
+            nvpimgproc::handle::Handler handler(input_directory, output_directory);
+            handler.process_rgb2bin(is_rgb);
+        }
+    }
+}
+
+static void component_file_dialog_showroom(std::string& filePathName, std::string& filePath, std::string& input_directory, std::string& output_directory, std::vector<std::pair<std::string, std::string>> selection) {
+    if (ImGui::CollapsingHeader("show file dialog results:")) {
+        ImGui::Text("GetFilePathName() : %s", filePathName.c_str());
+        ImGui::Text("GetFilePath() : %s", filePath.c_str());
+        ImGui::Text("input directory() : %s", input_directory.c_str());
+        ImGui::Text("output directory() : %s", output_directory.c_str());
+        ImGui::Text("GetSelection() : ");
+        ImGui::Indent();
+        {
+            static int selected = false;
+            if (ImGui::BeginTable("##GetSelection", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+                ImGui::TableSetupScrollFreeze(0, 1);  // Make top row always visible
+                ImGui::TableSetupColumn("File Name", ImGuiTableColumnFlags_WidthStretch, -1, 0);
+                ImGui::TableSetupColumn("File Path name", ImGuiTableColumnFlags_WidthFixed, -1, 1);
+                ImGui::TableHeadersRow();
+
+                ImGuiListClipper clipper;
+                clipper.Begin((int)selection.size(), ImGui::GetTextLineHeightWithSpacing());
+                while (clipper.Step()) {
+                    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                        const auto& sel = selection[i];
+                        ImGui::TableNextRow();
+                        if (ImGui::TableSetColumnIndex(0))  // first column
+                        {
+                            ImGuiSelectableFlags selectableFlags = ImGuiSelectableFlags_AllowDoubleClick;
+                            selectableFlags |= ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap;
+                            if (ImGui::Selectable(sel.first.c_str(), i == selected, selectableFlags)) selected = i;
+                        }
+                        if (ImGui::TableSetColumnIndex(1))  // second column
+                        {
+                            ImGui::Text("%s", sel.second.c_str());
+                        }
+                    }
+                }
+                clipper.End();
+
+                ImGui::EndTable();
+            }
+        }
+        ImGui::Unindent();
+    }
 }
