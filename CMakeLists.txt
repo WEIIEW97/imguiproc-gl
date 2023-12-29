@@ -8,7 +8,6 @@ project(${PROJECT} CXX)
 
 option(USE_STD_FILESYSTEM "Enable std::filesystem use for path and ImGuiFileDialog" ON)
 option(USE_NEW_IMGUI_KEY_SYSTEM "Define the symbol IMGUI_DISABLE_OBSOLETE_KEYIO" ON)
-option(USE_TEST "Enable tests" ON)
 
 
 include(cmake/3rdparty.cmake)
@@ -141,8 +140,3 @@ set_target_properties(ImGuiFileDialog PROPERTIES FOLDER Lib)
 target_include_directories(ImGuiFileDialog PRIVATE
 	${CMAKE_SOURCE_DIR}
 )
-
-if (USE_TEST)
-	enable_testing()
-	add_subdirectory(${CMAKE_SOURCE_DIR}/tests)
-endif()
