@@ -35,7 +35,10 @@ namespace nvpimgproc {
     std::string in_dir_, out_dir_, img_name_;
     cv::Mat image_;
     Impl(std::string in_dir, std::string out_dir)
-        : in_dir_(std::move(in_dir)), out_dir_(std::move(out_dir)) {}
+        : in_dir_(std::move(in_dir)), out_dir_(std::move(out_dir)) {
+        if (in_dir_.back() != '/') in_dir_ += "/";
+        if (out_dir_.back() != '/') out_dir_+= "/";
+    }
     ~Impl() = default;
 
   public:

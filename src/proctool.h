@@ -21,10 +21,12 @@
 #include <iomanip>
 #include <utility>
 
+
 namespace nvpimgproc::handle {
   class Handler : public Impl {
   public:
     std::vector<std::string> filenames_;
+    int total_num_ = 0;
     Handler(std::string in_dir, std::string out_dir)
         : Impl(std::move(in_dir), std::move(out_dir)) {
       retrieve_filenames();
@@ -48,6 +50,7 @@ namespace nvpimgproc::handle {
   private:
     void retrieve_filenames();
     void create_directory();
+    void get_total_num();
   };
 } // namespace nvpimgproc::handle
 

@@ -33,6 +33,14 @@ namespace nvpimgproc {
       nvpimgproc::fileop::create_output_dir(out_dir_);
     }
 
+    void Handler::get_total_num() {
+      if (!filenames_.empty()) {
+          total_num_ = filenames_.size();
+      } else {
+          total_num_ = -1;
+      }
+    }
+
     void Handler::process_img2yuv(std::string& order, std::string& left_marker,
                                   std::string& right_marker) {
       if (order == "L") {
@@ -43,6 +51,7 @@ namespace nvpimgproc {
             set_image_name(name);
             imread();
             img2yuv_y_channel_only(j, order);
+            ++j;
           }
         }
       } else if (order == "R") {
@@ -53,6 +62,7 @@ namespace nvpimgproc {
             set_image_name(name);
             imread();
             img2yuv_y_channel_only(j, order);
+            ++j;
           }
         }
       }

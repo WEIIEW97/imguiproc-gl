@@ -18,6 +18,8 @@
 #include <clocale>
 #include <string>
 #include <iostream>
+#include <thread>
+#include <functional>
 
 // About Desktop OpenGL function loaders:
 //  Modern desktop OpenGL doesn't have a standard portable header file to load OpenGL function pointers.
@@ -694,16 +696,16 @@ static void component_img_one_chn_to_bin(std::string& input_directory, std::stri
         if (ImGui::Button("Run")) {
             // Use the text from the selected input box
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_img2yuv((std::string&)items[item_current], reinterpret_cast<std::string&>(left_marker), reinterpret_cast<std::string&>(right_marker));
+            std::string order, lmarker, rmarker;
+            order   = items[item_current];
+            lmarker = left_marker;
+            rmarker = right_marker;
+            std::thread thread([&input_directory, &output_directory, order, lmarker, rmarker]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_img2yuv((std::string&)order, (std::string&)lmarker, (std::string&)rmarker);
+            });
+            thread.detach();
         }
-        //                if(is_button_clicked) {
-        //                    is_animate = true;
-        //                    static double refresh_time = 0.0;
-        //                    if (!is_animate || refresh_time == 0.0) {
-        //                        refresh_time = ImGui::GetTime();
-        //                    }
-        //                }
     }
 }
 
@@ -712,12 +714,17 @@ static void component_img_resize(std::string& input_directory, std::string& outp
         static bool is_button_clicked        = false;
         static float drag_f                  = 0.5f;
         static ImGuiSliderFlags resize_flags = ImGuiSliderFlags_None;
+
         ImGui::DragFloat("scaling factor ( 0 -> 5)", &drag_f, 0.005f, 0.0f, 5.0f, "%.3f", resize_flags);
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_img_resize(drag_f);
+            /// create a thread to handle the image operations
+            std::thread thread([&input_directory, &output_directory, drag_f = drag_f]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_img_resize(drag_f);
+            });
+            thread.detach();
         }
     }
 }
@@ -727,6 +734,7 @@ static void component_img_flip(std::string& input_directory, std::string& output
         static bool is_button_clicked = false;
         const char* items[]           = {"0", "1", "-1"};
         static int item_current       = 0;
+
         ImGui::Combo("Choose your flipping mode", &item_current, items, IM_ARRAYSIZE(items));
         int chosen_num = atoi(items[item_current]);
         nvpimgproc::FLIP status;
@@ -740,8 +748,11 @@ static void component_img_flip(std::string& input_directory, std::string& output
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_img_flip(status);
+            std::thread thread([&input_directory, &output_directory, status]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_img_flip(status);
+            });
+            thread.detach();
         }
     }
 }
@@ -761,8 +772,11 @@ static void component_img_disp2depth(std::string& input_directory, std::string& 
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_disp2depth(width, height, focal, baseline);
+            std::thread thread([&input_directory, &output_directory, width = width, height = height, focal = focal, baseline = baseline]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_disp2depth(width, height, focal, baseline);
+            });
+            thread.detach();
         }
     }
 }
@@ -776,6 +790,7 @@ static void component_img_colormap(std::string& input_directory, std::string& ou
         const char* items[]     = {"depth", "disparity"};
         static int item_current = 0;
         static int begin_i = 0, end_i = 0;
+
         ImGui::Combo("Choose the source data mode", &item_current, items, IM_ARRAYSIZE(items));
         std::string mode = items[item_current];
         ImGui::InputInt("Image Height", &height);
@@ -789,8 +804,11 @@ static void component_img_colormap(std::string& input_directory, std::string& ou
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_colormap(width, height, is_depth, begin_i, end_i);
+            std::thread thread([&input_directory, &output_directory, width = width, height = height, is_depth = is_depth, begin_i = begin_i, end_i = end_i]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_colormap(width, height, is_depth, begin_i, end_i);
+            });
+            thread.detach();
         }
     }
 }
@@ -805,8 +823,11 @@ static void component_img_rename(std::string& input_directory, std::string& outp
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_rename(mode);
+            std::thread thread([&input_directory, &output_directory, mode]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_rename(mode);
+            });
+            thread.detach();
         }
     }
 }
@@ -822,8 +843,11 @@ static void component_img_bin2rgb(std::string& input_directory, std::string& out
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_bin2rgb(width, height);
+            std::thread thread([&input_directory, &output_directory, width = width, height = height]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_bin2rgb(width, height);
+            });
+            thread.detach();
         }
     }
 }
@@ -844,16 +868,17 @@ static void component_img_rgb2bin(std::string& input_directory, std::string& out
 
         if (ImGui::Button("Run")) {
             is_button_clicked = true;
-            nvpimgproc::handle::Handler handler(input_directory, output_directory);
-            handler.process_rgb2bin(is_rgb);
+            std::thread thread([&input_directory, &output_directory, is_rgb = is_rgb]() {
+                nvpimgproc::handle::Handler handler(input_directory, output_directory);
+                handler.process_rgb2bin(is_rgb);
+            });
+            thread.detach();
         }
     }
 }
 
 static void component_file_dialog_showroom(std::string& filePathName, std::string& filePath, std::string& input_directory, std::string& output_directory, std::vector<std::pair<std::string, std::string>> selection) {
     if (ImGui::CollapsingHeader("show file dialog results:")) {
-        ImGui::Text("GetFilePathName() : %s", filePathName.c_str());
-        ImGui::Text("GetFilePath() : %s", filePath.c_str());
         ImGui::Text("input directory() : %s", input_directory.c_str());
         ImGui::Text("output directory() : %s", output_directory.c_str());
         ImGui::Text("GetSelection() : ");

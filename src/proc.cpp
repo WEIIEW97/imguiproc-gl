@@ -296,7 +296,7 @@ namespace nvpimgproc {
   void Impl::colormap(int w, int h, int index, bool is_depth, int minscope,
                       int maxscope) {
     cv::Mat disp = cv::Mat::zeros(cv::Size(w, h), CV_16UC1);
-    size_t found = img_name_.find_last_of(".");
+    size_t found = img_name_.find_last_of('.');
     std::string marker = img_name_.substr(found + 1);
     if (marker == "png" || marker == "bmp" || marker == "jpg") {
       // read uint16 img by imread
@@ -343,7 +343,7 @@ namespace nvpimgproc {
   }
 
   void Impl::bin2rgb(int w, int h) {
-    size_t found = img_name_.find_last_of(".");
+    size_t found = img_name_.find_last_of('.');
     std::string marker = img_name_.substr(found + 1);
     if (marker == "raw" || marker == "yuv" || marker == "bin") {
       std::ifstream file((in_dir_ + img_name_),
@@ -384,7 +384,7 @@ namespace nvpimgproc {
   }
 
   void Impl::rgb2bin(bool is_rgb) {
-    size_t pos = img_name_.find_last_of(".");
+    size_t pos = img_name_.find_last_of('.');
     std::string suffix = img_name_.substr(pos + 1);
     std::string name_replaced =
         std::regex_replace(img_name_, std::regex(suffix), "yuv");
